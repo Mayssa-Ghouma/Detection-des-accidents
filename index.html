@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AccidentAI — Détection Douce</title>
+<style>
+  /* Importation de polices plus douces et arrondies */
+  @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&family=Outfit:wght@400;700;800&display=swap');
+
+  :root {
+    --bg: #fdfbfb; /* Blanc rosé très pâle */
+    --surface: #ffffff;
+    --card: rgba(255, 255, 255, 0.8);
+    --border: #f0f2f5;
+    --accent: #ffb3ba; /* Rose Pastel */
+    --safe: #baffc9;   /* Vert Menthe Pastel */
+    --btn: #bae1ff;    /* Bleu Ciel Pastel */
+    --text: #5d6d7e;
+    --muted: #aeb6bf;
+    --shadow: 0 10px 30px rgba(0,0,0,0.05);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: linear-gradient(135deg, #fdfcfb 0%, #e2d1c3 100%);
+    color: var(--text);
+    font-family: 'Quicksand', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Fond avec des bulles pastel floues pour le côté "cute" */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 0;
+    background: radial-gradient(circle at 10% 20%, rgba(186, 225, 255, 0.2) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(255, 179, 186, 0.2) 0%, transparent 40%);
+    pointer-events: none;
+  }
+
+  header {
+    position: relative; z-index: 10;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 24px 48px;
+  }
+
+  .logo {
+    display: flex; align-items: center; gap: 12px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 22px; font-weight: 800; color: #ff9aa2;
+  }
+
+  .logo-dot {
+    width: 12px; height: 12px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 15px var(--accent);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.2); opacity: 0.7} }
+
+  .status-badge {
+    background: var(--card);
+    backdrop-filter: blur(5px);
+    border-radius: 50px; padding: 8px 18px;
+    font-size: 13px; font-weight: 600;
+    box-shadow: var(--shadow);
+    display: flex; align-items: center; gap: 10px;
+  }
+
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .status-dot.online  { background: var(--safe); box-shadow: 0 0 8px var(--safe); }
+  .status-dot.offline { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+
+  main {
+    position: relative; z-index: 1;
+    max-width: 1100px; margin: 0 auto;
+    padding: 40px 20px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 32px;
+  }
+
+  @media(max-width:820px){ main{ grid-template-columns:1fr; } }
+
+  .hero { grid-column: 1 / -1; text-align: center; margin-bottom: 20px; }
+  .hero h1 { font-family: 'Outfit', sans-serif; font-size: 3rem; color: #4a5568; margin-bottom: 10px; }
+  .hero h1 span { color: #ffb3ba; }
+  .hero p { font-size: 18px; color: var(--muted); }
+
+  .card {
+    background: var(--card);
+    backdrop-filter: blur(10px);
+    border: 2px solid white;
+    border-radius: 30px;
+    padding: 30px;
+    box-shadow: var(--shadow);
+    transition: transform 0.3s ease;
+  }
+  .card:hover { transform: translateY(-5px); }
+
+  .card-title {
+    font-weight: 700; text-transform: uppercase; font-size: 12px;
+    letter-spacing: 1px; color: #aeb6bf; margin-bottom: 20px;
+  }
+
+  /* Upload Zone Pastel */
+  #drop-zone {
+    border: 3px dashed var(--btn);
+    background: rgba(186, 225, 255, 0.1);
+    border-radius: 20px; padding: 40px 20px;
+    text-align: center; cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  #drop-zone:hover { background: rgba(186, 225, 255, 0.2); border-color: #9acbff; }
+
+  .upload-icon { font-size: 40px; margin-bottom: 10px; }
+
+  /* Preview Styles */
+  #preview-wrap { display: none; margin-top: 20px; position: relative; }
+  #preview-img, #preview-video {
+    width: 100%; border-radius: 20px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    max-height: 300px; object-fit: cover;
+  }
+
+  /* Button "Cute" */
+  #btn-analyse {
+    display: none; width: 100%; margin-top: 20px;
+    padding: 16px; background: var(--btn);
+    color: #5d6d7e; border: none; border-radius: 18px;
+    font-family: 'Quicksand', sans-serif; font-weight: 700; font-size: 16px;
+    cursor: pointer; box-shadow: 0 4px 15px rgba(186, 225, 255, 0.4);
+    transition: all 0.2s ease;
+  }
+  #btn-analyse:hover { background: #9ad2ff; transform: scale(1.02); }
+
+  /* Results area */
+  .verdict {
+    border-radius: 20px; padding: 20px;
+    display: flex; align-items: center; gap: 15px; margin-bottom: 20px;
+  }
+  .verdict.accident { background: #fff0f0; border: 2px solid var(--accent); }
+  .verdict.safe { background: #f0fff4; border: 2px solid var(--safe); }
+
+  .verdict-label { font-weight: 700; font-size: 18px; }
+  .verdict.accident .verdict-label { color: #ff808b; }
+  .verdict.safe .verdict-label { color: #52be80; }
+
+  /* Bars */
+  .bar-track {
+    height: 12px; background: #f0f2f5;
+    border-radius: 10px; margin-bottom: 15px; overflow: hidden;
+  }
+  .bar-fill { height: 100%; border-radius: 10px; transition: width 1s ease; }
+  .bar-fill.red { background: var(--accent); }
+  .bar-fill.green { background: var(--safe); }
+
+  .meta-item {
+    background: #fdfcfb; border-radius: 15px;
+    padding: 12px; border: 1px solid #f0f2f5;
+  }
+  .meta-key { font-size: 10px; color: var(--muted); }
+  .meta-val { font-weight: 700; color: var(--text); }
+
+  /* History */
+  .history-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 10px; margin-top: 15px;
+  }
+  .hist-item { border-radius: 15px; overflow: hidden; border: 2px solid white; box-shadow: var(--shadow); }
+  .hist-item img, .hist-item video { width: 100%; height: 70px; object-fit: cover; }
+
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo"><div class="logo-dot"></div> AccidentAI</div>
+  <div class="status-badge">
+    <div class="status-dot" id="status-dot"></div>
+    <span id="status-text">Coucou...</span>
+  </div>
+</header>
+
+<main>
+  <div class="hero">
+    <h1>Détection <span>d'accidents</span> </h1>
+    <p>Sécurité routière</p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Importer Photo ou Vidéo</div>
+    <div id="drop-zone">
+      <input type="file" id="file-input" accept="image/*,video/*"/>
+      <div class="upload-icon"></div>
+      <p><strong>Cliquer ou glisser</strong></p>
+    </div>
+
+    <div id="preview-wrap">
+      <img id="preview-img" style="display:none;"/>
+      <video id="preview-video" style="display:none;" controls autoplay muted loop></video>
+    </div>
+
+    <button id="btn-analyse" onclick="analyse()">Lancer l'analyse </button>
+    <div class="loader" id="loader"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Resultat</div>
+    <div id="result-panel" style="display:none;">
+      <div class="verdict" id="verdict">
+        <div id="verdict-icon" style="font-size:30px;"></div>
+        <div>
+          <div class="verdict-label" id="verdict-label"></div>
+          <div class="verdict-sub" id="verdict-sub" style="font-size:12px; color:#95a5a6;"></div>
+        </div>
+      </div>
+
+      <div class="metric-label" style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:5px;">
+        <span>Accident</span> <strong id="val-accident"></strong>
+      </div>
+      <div class="bar-track"><div class="bar-fill red" id="bar-accident"></div></div>
+
+      <div class="metric-label" style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:5px;">
+        <span>Tout va bien</span> <strong id="val-normal"></strong>
+      </div>
+      <div class="bar-track"><div class="bar-fill green" id="bar-normal"></div></div>
+
+      <div class="meta-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div class="meta-item"><div class="meta-key">Confiance</div><div class="meta-val" id="meta-conf"></div></div>
+        <div class="meta-item"><div class="meta-key">Vitesse</div><div class="meta-val" id="meta-time"></div></div>
+      </div>
+    </div>
+    <div id="result-placeholder" style="text-align:center; padding:40px; color:var(--muted);">
+      J'attends ton fichier
+    </div>
+  </div>
+</main>
+
+<script>
+const API = 'http://localhost:5000';
+let currentFile = null;
+
+async function checkStatus() {
+  try {
+    const r = await fetch(`${API}/status`);
+    const d = await r.json();
+    document.getElementById('status-dot').className = d.model_loaded ? 'status-dot online' : 'status-dot offline';
+    document.getElementById('status-text').textContent = d.model_loaded ? 'YOLO Prêt !' : 'Dodo...';
+  } catch {
+    document.getElementById('status-dot').className = 'status-dot offline';
+    document.getElementById('status-text').textContent = 'Hors ligne';
+  }
+}
+checkStatus();
+
+const fileInput = document.getElementById('file-input');
+const previewImg = document.getElementById('preview-img');
+const previewVid = document.getElementById('preview-video');
+const previewWrap = document.getElementById('preview-wrap');
+const btnAnalyse = document.getElementById('btn-analyse');
+
+fileInput.addEventListener('change', e => loadFile(e.target.files[0]));
+
+function loadFile(file) {
+  if (!file) return;
+  currentFile = file;
+  const isVideo = file.type.startsWith('video/');
+  const reader = new FileReader();
+
+  reader.onload = ev => {
+    if (isVideo) {
+      previewImg.style.display = 'none';
+      previewVid.src = ev.target.result;
+      previewVid.style.display = 'block';
+    } else {
+      previewVid.style.display = 'none';
+      previewImg.src = ev.target.result;
+      previewImg.style.display = 'block';
+    }
+    previewWrap.style.display = 'block';
+    btnAnalyse.style.display = 'block';
+    document.getElementById('result-panel').style.display = 'none';
+    document.getElementById('result-placeholder').style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function analyse() {
+  if (!currentFile) return;
+  document.getElementById('btn-analyse').textContent = "✨ Analyse en cours... ✨";
+  
+  try {
+    let body;
+    let headers = {};
+
+    // Pour les vidéos, on utilise FormData au lieu de base64 pour plus de stabilité
+    const formData = new FormData();
+    formData.append('file', currentFile);
+    body = formData;
+
+    const res = await fetch(`${API}/predict`, { method : 'POST', body : body });
+    const data = await res.json();
+    
+    if (data.error) throw new Error(data.error);
+    showResult(data);
+  } catch (err) {
+    alert("Oups : " + err.message);
+  } finally {
+    document.getElementById('btn-analyse').textContent = "Lancer l'analyse ";
+  }
+}
+
+function showResult(d) {
+  document.getElementById('result-panel').style.display = 'block';
+  document.getElementById('result-placeholder').style.display = 'none';
+
+  const isAcc = d.is_accident;
+  const verdict = document.getElementById('verdict');
+  verdict.className = `verdict ${isAcc ? 'accident' : 'safe'}`;
+  document.getElementById('verdict-icon').textContent = isAcc ? '🚨' : ' ✅';
+  document.getElementById('verdict-label').textContent = isAcc ? 'ACCIDENT ' : 'C\'TOUTVA BIEN';
+  
+  const pA = (d.accident_proba * 100).toFixed(1);
+  const pN = (d.normal_proba * 100).toFixed(1);
+  document.getElementById('val-accident').textContent = pA + "%";
+  document.getElementById('val-normal').textContent = pN + "%";
+  
+  setTimeout(() => {
+    document.getElementById('bar-accident').style.width = pA + "%";
+    document.getElementById('bar-normal').style.width = pN + "%";
+  }, 100);
+
+  document.getElementById('meta-conf').textContent = (d.confidence*100).toFixed(1) + "%";
+  document.getElementById('meta-time').textContent = (d.elapsed_sec*1000).toFixed(0) + "ms";
+}
+</script>
+</body>
+</html>
